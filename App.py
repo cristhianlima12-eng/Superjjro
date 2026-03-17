@@ -1,57 +1,79 @@
 import streamlit as st
-import pandas as pd
 
-# Configuração da Página para parecer um App Nativo
+# Configuração para esconder menus e focar no App
 st.set_page_config(page_title="SUPER JJ SNIPER", page_icon="🎯", layout="centered")
 
-# CSS para deixar os botões com cara de roleta no celular
+# --- CSS PROFISSIONAL PARA CELULAR ---
 st.markdown("""
     <style>
+    /* Esconder cabeçalhos do Streamlit */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+    
+    /* Container principal */
+    .block-container {
+        padding-top: 1rem;
+        padding-bottom: 0rem;
+    }
+    
+    /* Estilo dos botões de números */
     .stButton > button {
         width: 100%;
-        border-radius: 5px;
-        height: 3em;
-        background-color: #333;
-        color: white;
+        height: 60px !important;
+        border-radius: 10px;
+        font-size: 20px !important;
         font-weight: bold;
+        margin-bottom: 5px;
+        border: 1px solid #444;
     }
-    .stButton > button:active { background-color: #555; }
+    
+    /* Botão Zero */
+    .zero-btn > div > div > button {
+        background-color: #008000 !important;
+        color: white !important;
+        height: 70px !important;
+    }
+
+    /* Cores dos alertas */
+    .stAlert {
+        border-radius: 15px;
+        border: none;
+    }
     </style>
     """, unsafe_allow_html=True)
 
-# Sequência real da Roleta Europeia
+# --- SEQUÊNCIA E REGRAS ---
 RODA = [0, 32, 15, 19, 4, 21, 2, 25, 17, 34, 6, 27, 13, 36, 11, 30, 8, 23, 10, 5, 24, 16, 33, 1, 20, 14, 31, 9, 22, 18, 29, 7, 28, 12, 35, 3, 26]
 VERMELHOS = [1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36]
 
-# Inicialização da Memória do App
+# Inicialização
 if 'historico' not in st.session_state:
     st.session_state.historico = []
 if 'mapa_puxadas' not in st.session_state:
     st.session_state.mapa_puxadas = {}
 if 'operacao' not in st.session_state:
-    st.session_state.operacao = {"ativo": False, "alvos": [], "ciclo": 1, "msg": ""}
+    st.session_state.operacao = {"ativo": False, "alvos": [], "ciclo": 1, "msg": "", "cor": "info"}
 
 def obter_vizinhos(num, qtd=2):
-    if num not in RODA: return []
     idx = RODA.index(num)
     return [RODA[(idx + i) % 37] for i in range(-qtd, qtd + 1)]
 
-def registrar_numero(num):
+def registrar(num):
     hist = st.session_state.historico
+    op = st.session_state.operacao
     
-    # Se estiver em operação, verifica Green/Loss
-    if st.session_state.operacao["ativo"]:
-        if num in st.session_state.operacao["alvos"] or num == 0:
+    if op["ativo"]:
+        if num in op["alvos"] or num == 0:
             st.toast(f"✅ GREEN NO {num}!", icon="✅")
             st.session_state.operacao["ativo"] = False
         else:
-            if st.session_state.operacao["ciclo"] < 3:
+            if op["ciclo"] < 3:
                 st.session_state.operacao["ciclo"] += 1
             else:
                 st.toast(f"❌ LOSS NO {num}", icon="❌")
                 st.session_state.operacao["ativo"] = False
 
-    # Motor de Aprendizado
     if len(hist) > 0:
         ultimo = hist[-1]
         if ultimo not in st.session_state.mapa_puxadas:
@@ -60,57 +82,51 @@ def registrar_numero(num):
     
     st.session_state.historico.append(num)
     
-    # Analisa Próxima Jogada (Se não estiver em operação)
+    # Analisar Padrão
     if not st.session_state.operacao["ativo"]:
-        analisar_puxada(num)
+        # 1. Repetição
+        if hist[-10:].count(num) >= 2:
+            st.session_state.operacao.update({"ativo": True, "alvos": obter_vizinhos(num), "ciclo": 1, "msg": f"🚨 REPETIÇÃO: ÁREA DO {num}", "cor": "warning"})
+        # 2. Puxada
+        puxados = st.session_state.mapa_puxadas.get(num, [])
+        if puxados:
+            mais_comum = max(set(puxados), key=puxados.count)
+            if puxados.count(mais_comum) >= 2:
+                st.session_state.operacao.update({"ativo": True, "alvos": obter_vizinhos(mais_comum), "ciclo": 1, "msg": f"🚨 MANIPULAÇÃO: {num} -> {mais_comum}", "cor": "error"})
 
-def analisar_puxada(num_atual):
-    hist = st.session_state.historico
-    # 1. Repetição
-    if hist[-10:].count(num_atual) >= 2:
-        st.session_state.operacao.update({
-            "ativo": True, "alvos": obter_vizinhos(num_atual), "ciclo": 1,
-            "msg": f"🚨 REPETIÇÃO DETECTADA: VIZINHOS DO {num_atual}"
-        })
-    # 2. Puxada Aprendida
-    puxados = st.session_state.mapa_puxadas.get(num_atual, [])
-    if puxados:
-        mais_comum = max(set(puxados), key=puxados.count)
-        if puxados.count(mais_comum) >= 2:
-            st.session_state.operacao.update({
-                "ativo": True, "alvos": obter_vizinhos(mais_comum), "ciclo": 1,
-                "msg": f"🚨 MANIPULAÇÃO: {num_atual} PUXA {mais_comum}"
-            })
+# --- INTERFACE ---
+st.markdown("<h3 style='text-align: center; color: white;'>SUPER JJ SNIPER</h3>", unsafe_allow_html=True)
 
-# --- INTERFACE DO APP ---
-st.title("🎯 SUPER JJ SNIPER")
-
-# Painel de Alerta Dinâmico
-if st.session_state.operacao["ativo"]:
-    st.warning(f"{st.session_state.operacao['msg']} \n\n GALE: {st.session_state.operacao['ciclo']-1}/2")
+# Alerta no topo
+op = st.session_state.operacao
+if op["ativo"]:
+    if op["cor"] == "warning": st.warning(f"**{op['msg']}** \n\nGALE: {op['ciclo']-1}/2")
+    else: st.error(f"**{op['msg']}** \n\nGALE: {op['ciclo']-1}/2")
 else:
-    st.success(f"MONITORANDO... GIROS: {len(st.session_state.historico)}")
+    st.info(f"Monitorando... Giros: {len(st.session_state.historico)}")
 
-# Tabuleiro de Botões (3 colunas para celular)
-cols = st.columns(3)
-if cols[1].button("0", type="primary", use_container_width=True):
-    registrar_numero(0)
+# Botão Zero Grande
+st.markdown('<div class="zero-btn">', unsafe_allow_html=True)
+if st.button("ZERO (0)"): 
+    registrar(0)
     st.rerun()
+st.markdown('</div>', unsafe_allow_html=True)
 
+# Grid de Números 3 colunas (Ideal para Celular)
+cols = st.columns(3)
 for i in range(1, 37):
     col_idx = (i - 1) % 3
-    label = str(i)
-    if cols[col_idx].button(label, use_container_width=True):
-        registrar_numero(i)
+    cor_btn = "red" if i in VERMELHOS else "black"
+    if cols[col_idx].button(f"{i}"):
+        registrar(i)
         st.rerun()
 
-st.divider()
-if st.button("🗑️ LIMPAR MEMÓRIA DO ROBÔ"):
+st.write("---")
+if st.button("🗑️ LIMPAR TUDO"):
     st.session_state.historico = []
     st.session_state.mapa_puxadas = {}
     st.session_state.operacao["ativo"] = False
     st.rerun()
 
-# Log de Histórico
 if st.session_state.historico:
-    st.write("Últimos Giros:", st.session_state.historico[-10:])
+    st.caption(f"Últimos: {st.session_state.historico[-8:]}")
