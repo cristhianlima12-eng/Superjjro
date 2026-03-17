@@ -1,21 +1,20 @@
 import streamlit as st
 
-# Configuração da página
 st.set_page_config(page_title="SUPER JJ SNIPER", layout="centered")
 
-# --- CSS DE FORÇA BRUTA PARA MANTER 3 COLUNAS NO CELULAR ---
+# --- CSS DE FORÇA BRUTA: BOTÕES GRUDADOS E 3 COLUNAS NO CELULAR ---
 st.markdown("""
     <style>
-    /* Esconder cabeçalhos e menus */
+    /* 1. Esconder menus inúteis */
     #MainMenu, footer, header {visibility: hidden;}
     .block-container {padding: 0.5rem; background-color: #0d1117;}
 
-    /* FORÇA AS COLUNAS A FICAREM LADO A LADO NO CELULAR (33% CADA) */
+    /* 2. FORÇAR 3 COLUNAS LADO A LADO (NÃO EMPILHAR) */
     div[data-testid="stHorizontalBlock"] {
         display: flex !important;
         flex-direction: row !important;
         flex-wrap: nowrap !important;
-        align-items: center !important;
+        gap: 2px !important; /* Diminuindo espaço entre colunas */
     }
     div[data-testid="column"] {
         width: 33.33% !important;
@@ -23,29 +22,30 @@ st.markdown("""
         min-width: 33.33% !important;
     }
 
-    /* Estilo dos Botões */
+    /* 3. BOTÕES MAIS PERTO (REDUZINDO MARGENS) */
     .stButton > button {
         width: 100%;
-        height: 55px !important;
-        border-radius: 4px;
+        height: 50px !important;
+        border-radius: 2px;
         font-weight: bold;
-        font-size: 20px !important;
+        font-size: 18px !important;
         color: white !important;
-        border: 1px solid #444;
-        margin-bottom: 2px;
+        border: 1px solid #333;
+        margin: 0px !important; /* Tirando margem dos botões */
+        padding: 0px !important;
     }
 
-    /* Cores das Células */
+    /* 4. CORES REAIS */
     .btn-red > div > button { background-color: #da3633 !important; }
     .btn-black > div > button { background-color: #161b22 !important; }
     .btn-zero > div > button { 
         background-color: #238636 !important; 
-        height: 65px !important;
-        margin-bottom: 8px;
+        height: 55px !important;
+        margin-bottom: 4px !important;
     }
 
-    /* Alerta de Entrada no TOPO */
-    .stAlert { margin-bottom: 10px; border-radius: 10px; }
+    /* 5. ALERTAS COMPACTOS NO TOPO */
+    .stAlert { margin-bottom: 5px; padding: 0.5rem; border-radius: 5px; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -81,20 +81,18 @@ def registrar(num):
 
 # --- INTERFACE ---
 
-# 1. ATUALIZAÇÕES E ENTRADAS (TOPO)
+# 1. ALERTAS (TOPO)
 if st.session_state.op["ativo"]:
     st.warning(f"**{st.session_state.op['msg']}**")
 else:
-    st.info("🔍 MONITORANDO... AGUARDANDO PADRÃO.")
+    st.info("🔍 MONITORANDO PADRÕES...")
 
-# 2. TABELA DE NÚMEROS (MEIO)
-# Botão Zero Ocupando o Topo
+# 2. TABELA (MEIO)
 st.markdown('<div class="btn-zero">', unsafe_allow_html=True)
 if st.button("0"):
     registrar(0); st.rerun()
 st.markdown('</div>', unsafe_allow_html=True)
 
-# Grid 3 Colunas Fixas (1-2-3, 4-5-6...)
 for i in range(0, 12):
     cols = st.columns(3)
     for j in range(3):
@@ -109,7 +107,7 @@ for i in range(0, 12):
 # 3. HISTÓRICO (BAIXO)
 if st.session_state.hist:
     st.write("---")
-    st.caption(f"HISTÓRICO: {st.session_state.hist[-12:]}")
+    st.caption(f"Últimos: {st.session_state.hist[-12:]}")
 
 if st.button("🗑️ RESET"):
     st.session_state.clear(); st.rerun()
