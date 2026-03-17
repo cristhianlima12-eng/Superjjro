@@ -1,32 +1,38 @@
 import streamlit as st
 
-# Configuração da página para ocupar a tela toda
+# Configuração da página
 st.set_page_config(page_title="SUPER JJ SNIPER", layout="centered")
 
-# --- CSS AVANÇADO PARA TABULEIRO REAL (NÃO QUEBRA NO CELULAR) ---
+# --- CSS DE FORÇA BRUTA PARA MANTER 3 COLUNAS NO CELULAR ---
 st.markdown("""
     <style>
-    /* Esconder elementos do Streamlit */
+    /* Esconder cabeçalhos e menus */
     #MainMenu, footer, header {visibility: hidden;}
     .block-container {padding: 0.5rem; background-color: #0d1117;}
 
-    /* Forçar 3 colunas horizontais no celular */
-    [data-testid="column"] {
-        width: 33% !important;
-        flex: 1 1 33% !important;
-        min-width: 33% !important;
-        padding: 2px !important;
+    /* FORÇA AS COLUNAS A FICAREM LADO A LADO NO CELULAR (33% CADA) */
+    div[data-testid="stHorizontalBlock"] {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        align-items: center !important;
+    }
+    div[data-testid="column"] {
+        width: 33.33% !important;
+        flex: 1 1 33.33% !important;
+        min-width: 33.33% !important;
     }
 
     /* Estilo dos Botões */
     .stButton > button {
         width: 100%;
-        height: 50px !important;
+        height: 55px !important;
         border-radius: 4px;
         font-weight: bold;
-        font-size: 18px !important;
+        font-size: 20px !important;
         color: white !important;
         border: 1px solid #444;
+        margin-bottom: 2px;
     }
 
     /* Cores das Células */
@@ -34,11 +40,11 @@ st.markdown("""
     .btn-black > div > button { background-color: #161b22 !important; }
     .btn-zero > div > button { 
         background-color: #238636 !important; 
-        height: 60px !important;
-        margin-bottom: 5px;
+        height: 65px !important;
+        margin-bottom: 8px;
     }
 
-    /* Alerta de Entrada (Topo) */
+    /* Alerta de Entrada no TOPO */
     .stAlert { margin-bottom: 10px; border-radius: 10px; }
     </style>
     """, unsafe_allow_html=True)
@@ -65,7 +71,6 @@ def registrar(num):
     
     st.session_state.hist.append(num)
     
-    # Analisar Puxada Aprendida
     puxs = st.session_state.puxadas.get(num, [])
     if puxs:
         comum = max(set(puxs), key=puxs.count)
@@ -74,22 +79,22 @@ def registrar(num):
             vizis = [RODA[(idx+i)%37] for i in range(-2, 3)]
             st.session_state.op.update({"ativo": True, "alvos": vizis, "msg": f"🚨 MANIPULAÇÃO: {num} → {comum}"})
 
-# --- INTERFACE (ORDEM: ATUALIZAÇÕES EM CIMA, TABELA NO MEIO, HISTÓRICO EMBAIXO) ---
+# --- INTERFACE ---
 
-# 1. ATUALIZAÇÕES E SINAIS
+# 1. ATUALIZAÇÕES E ENTRADAS (TOPO)
 if st.session_state.op["ativo"]:
     st.warning(f"**{st.session_state.op['msg']}**")
 else:
     st.info("🔍 MONITORANDO... AGUARDANDO PADRÃO.")
 
-# 2. TABELA (ESTILO CASSINO)
-# Botão Zero
+# 2. TABELA DE NÚMEROS (MEIO)
+# Botão Zero Ocupando o Topo
 st.markdown('<div class="btn-zero">', unsafe_allow_html=True)
 if st.button("0"):
     registrar(0); st.rerun()
 st.markdown('</div>', unsafe_allow_html=True)
 
-# Grid 3 Colunas (1-2-3, 4-5-6...)
+# Grid 3 Colunas Fixas (1-2-3, 4-5-6...)
 for i in range(0, 12):
     cols = st.columns(3)
     for j in range(3):
@@ -101,11 +106,10 @@ for i in range(0, 12):
                 registrar(n); st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
 
-# 3. HISTÓRICO EMBAIXO
+# 3. HISTÓRICO (BAIXO)
 if st.session_state.hist:
     st.write("---")
     st.caption(f"HISTÓRICO: {st.session_state.hist[-12:]}")
 
 if st.button("🗑️ RESET"):
     st.session_state.clear(); st.rerun()
-    
